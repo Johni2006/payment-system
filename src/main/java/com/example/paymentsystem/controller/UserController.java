@@ -1,13 +1,9 @@
 package com.example.paymentsystem.controller;
 
-import com.example.paymentsystem.model.User;
+import com.example.paymentsystem.model.AppUser; // Обновлено на AppUser
 import com.example.paymentsystem.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -16,23 +12,13 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    @PostMapping("/register")
+    public AppUser registerUser(@RequestBody AppUser user) { // Обновлено на AppUser
+        return userService.saveUser(user.getUsername(), user.getPassword());
     }
 
-    @GetMapping("/{id}")
-    public Optional<User> getUserById(@PathVariable UUID id) {
-        return userService.getUserById(id);
-    }
-
-    @PostMapping
-    public User createUser(@RequestBody User user) {
-        return userService.saveUser(user);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable UUID id) {
-        userService.deleteUser(id);
+    @GetMapping("/{username}")
+    public AppUser getUser(@PathVariable String username) { // Обновлено на AppUser
+        return userService.findByUsername(username);
     }
 }
