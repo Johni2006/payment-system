@@ -5,10 +5,12 @@ import com.example.paymentsystem.model.ConfirmationToken;
 import com.example.paymentsystem.model.UserGroup;
 import com.example.paymentsystem.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +111,19 @@ public class UserService {
         userRepository.save(user);
 
         return true;
+    }
+
+    public AppUser submitMerchantRequest(UUID userId, String walletAddress) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (user.getUserGroup() != UserGroup.REGULAR || user.getIsActive() == false) {
+            throw new IllegalArgumentException("User is either not active or already a merchant");
+        }
+
+        user.setWalletAddress(walletAddress);
+        user.setUserGroup(UserGroup.REGULAR);
+        return userRepository.save(user);
     }
 }
 

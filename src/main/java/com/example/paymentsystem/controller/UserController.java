@@ -1,8 +1,10 @@
 package com.example.paymentsystem.controller;
 
+import com.example.paymentsystem.model.ActiveDeal;
 import com.example.paymentsystem.model.AppUser;
 import com.example.paymentsystem.model.ConfirmationToken;
 import com.example.paymentsystem.model.UserGroup;
+import com.example.paymentsystem.service.ActiveDealService;
 import com.example.paymentsystem.service.ConfirmationTokenService;
 import com.example.paymentsystem.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,6 +25,9 @@ public class UserController {
 
     @Autowired
     private ConfirmationTokenService confirmationTokenService;
+
+    @Autowired
+    private ActiveDealService activeDealService;
 
     @PostMapping("/register")
     public AppUser registerUser(@RequestBody AppUser user) {
@@ -92,6 +98,32 @@ public class UserController {
         userService.save(user); // Сохраняем изменения
 
         return ResponseEntity.ok("Подтверждение прошло успешно!");
+    }
+
+    @PostMapping("/merchant-request")
+    public ResponseEntity<AppUser> submitMerchantRequest(
+            @RequestParam UUID userId,
+            @RequestParam String walletAddress) {
+        try {
+            AppUser user = userService.submitMerchantRequest(userId, walletAddress);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PostMapping("/create-deal")
+    public ResponseEntity<ActiveDeal> createDeal(
+            @RequestParam UUID userId,
+            @RequestParam UUID requisitesId,
+            @RequestParam BigDecimal amount,
+            @RequestParam BigDecimal course) {
+        try {
+            ActiveDeal deal = activeDealService.createDeal(userId, requisitesId, amount, course);
+            return ResponseEntity.ok(deal);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
