@@ -5,51 +5,59 @@ import com.example.paymentsystem.model.ConfirmationToken;
 import com.example.paymentsystem.model.UserGroup;
 import com.example.paymentsystem.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    private final UserRepository userRepository;
+    private final EmailService emailService;
+    private final ConfirmationTokenService confirmationTokenService;
+
+    private static final SecureRandom secureRandom = new SecureRandom(); // threadsafe
+    private static final Base64.Encoder base64Encoder = Base64.getUrlEncoder(); // threadsafe
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private EmailService emailService;
-
-    @Autowired
-    private ConfirmationTokenService confirmationTokenService;
-
-    private static final SecureRandom secureRandom = new SecureRandom(); //threadsafe
-    private static final Base64.Encoder base64Encoder = Base64.getUrlEncoder(); //threadsafe
+    public UserService(UserRepository userRepository,
+                       EmailService emailService,
+                       ConfirmationTokenService confirmationTokenService) {
+        this.userRepository = userRepository;
+        this.emailService = emailService;
+        this.confirmationTokenService = confirmationTokenService;
+    }
 
 
     public AppUser registerUser(String email, String username) {
-        // Создаем нового пользователя
+        logger.info("Регистрация нового пользователя с email: {}", email);
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Пользователь с таким email уже существует.");
+        }
+
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new IllegalArgumentException("Пользователь с таким именем уже существует.");
+        }
+
         AppUser user = new AppUser();
         user.setEmail(email);
         user.setUsername(username);
-        user.setUserGroup(UserGroup.REGULAR); // Установка значения группы по умолчанию
+        user.setUserGroup(UserGroup.REGULAR);
         user.setTelegramToken(generateTelegramToken());
         user.setSecretKey(generateSecretKey());
 
-        // Сохраняем пользователя в базе данных
         AppUser savedUser = userRepository.save(user);
 
-        // Создаем и сохраняем токен подтверждения
-        ConfirmationToken confirmationToken = new ConfirmationToken(savedUser);
+        ConfirmationToken confirmationToken = confirmationTokenService.createTokenForUser(savedUser);
         confirmationTokenService.saveConfirmationToken(confirmationToken);
 
-        // Возвращаем сохраненного пользователя
+        sendConfirmationEmail(savedUser);
+
         return savedUser;
     }
 
@@ -80,25 +88,27 @@ public class UserService {
     }
 
     public void sendConfirmationEmail(AppUser user) {
-        // Генерация токена подтверждения
-        String confirmationToken = UUID.randomUUID().toString();
+        logger.info("Отправка подтверждающего письма на email: {}", user.getEmail());
 
-        // Логика отправки письма (здесь нужно использовать соответствующий сервис для отправки почты)
-        // Например, используя JavaMailSender или стороннюю библиотеку.
+        ConfirmationToken confirmationToken = confirmationTokenService.createTokenForUser(user);
 
-        // Сохранение токена в базе данных для дальнейшего использования
-        // Например, через создание сущности ConfirmationToken и соответствующего репозитория.
+        String confirmationUrl = "http://localhost:8080/api/users/confirm?token=" + confirmationToken.getToken();
+
+        String subject = "Подтверждение регистрации";
+        String message = "Для подтверждения регистрации перейдите по следующей ссылке: " + confirmationUrl;
+        emailService.sendEmail(user.getEmail(), subject, message);
     }
 
     public boolean confirmUser(String token) {
-        // Логика подтверждения пользователя по токену
-        // Здесь вы должны проверить наличие токена в базе данных и подтвердить пользователя
+        logger.info("Подтверждение пользователя с токеном: {}", token);
+        ConfirmationToken confirmationToken = confirmationTokenService.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Токен не найден или истек."));
 
-        // Если токен найден и активен, то подтверждаем пользователя
-        // Например:
-        // AppUser user = findUserByToken(token);
-        // user.setConfirmed(true);
-        // userRepository.save(user);
-        return true; // Если подтверждение успешно
+        AppUser user = confirmationToken.getUser();
+        user.setIsActive(true);
+        userRepository.save(user);
+
+        return true;
     }
 }
+

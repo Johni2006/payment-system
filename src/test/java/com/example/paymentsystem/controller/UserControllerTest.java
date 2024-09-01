@@ -1,6 +1,7 @@
 package com.example.paymentsystem.controller;
 
 import com.example.paymentsystem.model.AppUser;
+import com.example.paymentsystem.model.ConfirmationToken;
 import com.example.paymentsystem.model.UserGroup;
 import com.example.paymentsystem.repository.ConfirmationTokenRepository;
 import com.example.paymentsystem.repository.UserRepository;
@@ -14,6 +15,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -93,4 +96,65 @@ public class UserControllerTest {
                         .param("username", "existinguser"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    public void testConfirmUser() throws Exception {
+        // Создаем пользователя и сохраняем его в базе данных
+        AppUser testUser = new AppUser();
+        testUser.setEmail("confirmuser@example.com");
+        testUser.setUsername("confirmuser");
+        testUser.setSecretKey(UUID.randomUUID().toString());
+        testUser.setUserGroup(UserGroup.REGULAR);
+        testUser.setIsActive(false);
+
+        // Используем массив для хранения ссылки на testUser
+        final AppUser[] savedUser = new AppUser[1];
+        savedUser[0] = userRepository.save(testUser);
+
+        // Создаем и сохраняем токен подтверждения
+        ConfirmationToken confirmationToken = new ConfirmationToken(savedUser[0]);
+        confirmationTokenRepository.save(confirmationToken);
+
+        // Выполняем запрос на подтверждение пользователя
+        mockMvc.perform(get("/api/users/confirm")
+                        .param("token", confirmationToken.getToken()))
+                .andExpect(status().isOk())
+                .andExpect(result -> {
+                    AppUser confirmedUser = userRepository.findById(savedUser[0].getId()).orElseThrow();
+                    assert confirmedUser.getIsActive(); // Проверяем, что пользователь активирован
+                });
+    }
+
+    @Test
+    public void testRegisterUserWithExistingEmail() throws Exception {
+        String existingUserJson = "{\"email\": \"existinguser@example.com\", \"username\": \"existinguser\"}";
+
+        mockMvc.perform(post("/api/users/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(existingUserJson))
+                .andExpect(status().isBadRequest())  // Ожидаем статус ошибки
+                .andExpect(result ->
+                        assertTrue(result.getResolvedException() instanceof IllegalArgumentException))
+                .andExpect(result ->
+                        assertEquals("Пользователь с таким email уже существует.", result.getResolvedException().getMessage()));
+    }
+
+    @Test
+    public void testConfirmUserWithInvalidToken() throws Exception {
+        mockMvc.perform(get("/api/users/confirm")
+                        .param("token", "invalid-token"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testUpdateNonExistentUser() throws Exception {
+        String updatedUserJson = "{\"email\": \"nonexistentuser@example.com\", \"username\": \"nonexistentuser\"}";
+
+        mockMvc.perform(put("/api/users/{id}", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updatedUserJson))
+                .andExpect(status().isNotFound());
+    }
+
+
 }

@@ -80,17 +80,22 @@ public class UserController {
     }
 
     @GetMapping("/confirm")
-    public String confirmUser(@RequestParam("token") String token) {
+    public ResponseEntity<String> confirmUser(@RequestParam("token") String token) {
         ConfirmationToken confirmationToken = confirmationTokenService.getToken(token);
 
         if (confirmationToken == null || confirmationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            return "Неверный или истекший токен";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Неверный или истекший токен");
         }
 
         AppUser user = confirmationToken.getUser();
         user.setIsActive(true);  // Активируем пользователя
-        //userService.saveUser(user);
+        userService.save(user); // Сохраняем изменения
 
-        return "Подтверждение прошло успешно!";
+        return ResponseEntity.ok("Подтверждение прошло успешно!");
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }
