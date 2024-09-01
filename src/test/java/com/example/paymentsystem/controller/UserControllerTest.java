@@ -1,11 +1,10 @@
 package com.example.paymentsystem.controller;
 
 import com.example.paymentsystem.dto.DealRequest;
-import com.example.paymentsystem.model.AppUser;
-import com.example.paymentsystem.model.ConfirmationToken;
-import com.example.paymentsystem.model.UserGroup;
+import com.example.paymentsystem.model.*;
 import com.example.paymentsystem.repository.ActiveDealRepository;
 import com.example.paymentsystem.repository.ConfirmationTokenRepository;
+import com.example.paymentsystem.repository.TransferRequisiteRepository;
 import com.example.paymentsystem.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,8 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,7 +42,11 @@ public class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private UUID testUserId;
+    @Autowired
+    private TransferRequisiteRepository requisiteRepository;
+
+    private String testUserId;
+    private String testRequisiteId;
 
     @BeforeEach
     public void setup() {
@@ -57,14 +59,14 @@ public class UserControllerTest {
 
         // Создайте тестового пользователя с указанным ID
         AppUser testUser = new AppUser();
-        testUser.setId(UUID.fromString("5d8fc345-d9ab-4062-8f8f-2a783208df72")); // Используйте тот же ID
+        testUser.setId(UUID.randomUUID()); // Используйте тот же ID UUID.fromString("5d8fc345-d9ab-4062-8f8f-2a783208df72")
         testUser.setEmail("existinguser@example.com");
         testUser.setUsername("existinguser");
         testUser.setSecretKey(UUID.randomUUID().toString());
         testUser.setUserGroup(UserGroup.REGULAR);
         testUser.setIsActive(true);
         testUser.setBalance(new BigDecimal("5000.00"));
-
+        testUserId = testUser.getId().toString();
         userRepository.save(testUser);
 
         // Также создайте тестового мерчанта, если это необходимо
@@ -79,12 +81,22 @@ public class UserControllerTest {
 
         userRepository.save(testMerchant);
 
-        // Создайте тестовый реквизит, если он нужен для сделки
-        DealRequest requisite = new DealRequest();
-        requisite.setRequisitesId(UUID.fromString("3cd376f4-54ab-4ae2-a394-1821c38f81fd")); // Используйте тот же ID, что и в запросе
-        requisite.setAmount(new BigDecimal("10000.00"));
-        requisite.setCourse(new BigDecimal("5.00"));
-        requisite.setUserId(testUser.getId());
+        // Создаем новый объект TransferRequisite
+        TransferRequisite requisite = new TransferRequisite();
+        requisite.setId(UUID.randomUUID());
+        requisite.setName("Test Requisite");
+        requisite.setPhoneOrCardNumber("1234567890");
+        requisite.setComment("Test Comment");
+        requisite.setOrderId(UUID.randomUUID());
+        requisite.setUser(testUser);
+
+        testRequisiteId = requisite.getId().toString();
+
+        // Сохраняем объект в базе данных, используя метод save()
+        requisite = requisiteRepository.save(requisite);
+
+        // Проверяем, что ID был автоматически присвоен
+        assertNotNull(requisite.getId());
     }
 
     @Test
@@ -190,7 +202,7 @@ public class UserControllerTest {
 
     @Test
     public void testCreateDeal() throws Exception {
-        String dealRequestJson = "{\"userId\":\"5d8fc345-d9ab-4062-8f8f-2a783208df72\",\"requisitesId\":\"3cd376f4-54ab-4ae2-a394-1821c38f81fd\",\"amount\":500,\"course\":10}";
+        String dealRequestJson = "{\"userId\":\"" + testUserId + "\",\"requisitesId\":\"" + testRequisiteId + "\",\"amount\":500,\"course\":10}";
 
         mockMvc.perform(post("/api/users/deals")
                         .contentType(MediaType.APPLICATION_JSON)

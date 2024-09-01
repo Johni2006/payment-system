@@ -38,7 +38,19 @@ public class ActiveDeal {
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
 
+    @ManyToOne
+    @JoinColumn(name = "requisite_id")
+    private TransferRequisite requisite;
+
     // Getters and Setters
+    public TransferRequisite getRequisite() {
+        return requisite;
+    }
+
+    public void setRequisite(TransferRequisite requisite) {
+        this.requisite = requisite;
+    }
+
     public Long getId() {
         return id;
     }

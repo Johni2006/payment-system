@@ -10,8 +10,8 @@ import java.util.UUID;
 public class TransferRequisite {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    //@GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
 
     @Column(nullable = false, length = 255)
     private String name;
@@ -30,11 +30,11 @@ public class TransferRequisite {
     private UUID orderId;
 
     // Getters and Setters
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
