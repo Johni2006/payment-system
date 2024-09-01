@@ -5,6 +5,8 @@ import com.example.paymentsystem.model.ConfirmationToken;
 import com.example.paymentsystem.model.UserGroup;
 import com.example.paymentsystem.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
@@ -124,6 +126,18 @@ public class UserService {
         user.setWalletAddress(walletAddress);
         user.setUserGroup(UserGroup.REGULAR);
         return userRepository.save(user);
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        AppUser user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getEmail())
+                .password("") // Так как у нас нет пароля, используем пустую строку
+                .roles(user.getUserGroup().name())
+                .build();
     }
 }
 
