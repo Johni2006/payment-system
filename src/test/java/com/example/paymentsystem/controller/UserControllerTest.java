@@ -1,10 +1,13 @@
 package com.example.paymentsystem.controller;
 
+import com.example.paymentsystem.dto.DealRequest;
 import com.example.paymentsystem.model.AppUser;
 import com.example.paymentsystem.model.ConfirmationToken;
 import com.example.paymentsystem.model.UserGroup;
+import com.example.paymentsystem.repository.ActiveDealRepository;
 import com.example.paymentsystem.repository.ConfirmationTokenRepository;
 import com.example.paymentsystem.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,6 +38,12 @@ public class UserControllerTest {
     @Autowired
     private ConfirmationTokenRepository confirmationTokenRepository;
 
+    @Autowired
+    private ActiveDealRepository activeDealRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private UUID testUserId;
 
     @BeforeEach
@@ -43,16 +53,38 @@ public class UserControllerTest {
 
         // Убедимся, что база данных пуста перед каждым тестом
         userRepository.deleteAll();
+        activeDealRepository.deleteAll();
 
-        // Создадим тестового пользователя для использования в тестах
+        // Создайте тестового пользователя с указанным ID
         AppUser testUser = new AppUser();
+        testUser.setId(UUID.fromString("5d8fc345-d9ab-4062-8f8f-2a783208df72")); // Используйте тот же ID
         testUser.setEmail("existinguser@example.com");
         testUser.setUsername("existinguser");
         testUser.setSecretKey(UUID.randomUUID().toString());
         testUser.setUserGroup(UserGroup.REGULAR);
         testUser.setIsActive(true);
-        testUser = userRepository.save(testUser);
-        testUserId = testUser.getId();
+        testUser.setBalance(new BigDecimal("5000.00"));
+
+        userRepository.save(testUser);
+
+        // Также создайте тестового мерчанта, если это необходимо
+        AppUser testMerchant = new AppUser();
+        testMerchant.setId(UUID.randomUUID());
+        testMerchant.setEmail("merchant@example.com");
+        testMerchant.setUsername("merchant");
+        testMerchant.setSecretKey(UUID.randomUUID().toString());
+        testMerchant.setUserGroup(UserGroup.REGULAR);
+        testMerchant.setIsActive(true);
+        testMerchant.setBalance(new BigDecimal("10000.00"));
+
+        userRepository.save(testMerchant);
+
+        // Создайте тестовый реквизит, если он нужен для сделки
+        DealRequest requisite = new DealRequest();
+        requisite.setRequisitesId(UUID.fromString("3cd376f4-54ab-4ae2-a394-1821c38f81fd")); // Используйте тот же ID, что и в запросе
+        requisite.setAmount(new BigDecimal("10000.00"));
+        requisite.setCourse(new BigDecimal("5.00"));
+        requisite.setUserId(testUser.getId());
     }
 
     @Test
@@ -154,6 +186,19 @@ public class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updatedUserJson))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testCreateDeal() throws Exception {
+        String dealRequestJson = "{\"userId\":\"5d8fc345-d9ab-4062-8f8f-2a783208df72\",\"requisitesId\":\"3cd376f4-54ab-4ae2-a394-1821c38f81fd\",\"amount\":500,\"course\":10}";
+
+        mockMvc.perform(post("/api/users/deals")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(dealRequestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.merchantId").exists())
+                .andExpect(jsonPath("$.amount").value(500))
+                .andExpect(jsonPath("$.currency").value("USDT"));
     }
 
 

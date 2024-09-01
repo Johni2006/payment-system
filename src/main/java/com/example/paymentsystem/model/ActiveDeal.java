@@ -110,4 +110,12 @@ public class ActiveDeal {
     public void setOrderId(UUID orderId) {
         this.orderId = orderId;
     }
+
+    public UUID getMerchantId() {
+        return merchant != null ? merchant.getId() : null;
+    }
+
+    public UUID getPartnerUserId() {
+        return partnerUser != null ? partnerUser.getId() : null;
+    }
 }

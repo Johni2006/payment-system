@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
@@ -40,7 +41,7 @@ public class ActiveDealService {
         // Создать запись в active_deals
         ActiveDeal deal = new ActiveDeal();
         deal.setMerchant(selectedMerchant);
-        deal.setPartnerUser(userRepository.findById(userId).orElseThrow());
+        deal.setPartnerUser(userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("No user found with ID: " + userId)));
         deal.setAmount(amount);
         deal.setCurrency("USDT");
         deal.setExchangeRate(course);

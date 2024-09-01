@@ -1,5 +1,7 @@
 package com.example.paymentsystem.controller;
 
+import com.example.paymentsystem.dto.DealRequest;
+import com.example.paymentsystem.dto.DealResponseDto;
 import com.example.paymentsystem.model.ActiveDeal;
 import com.example.paymentsystem.model.AppUser;
 import com.example.paymentsystem.model.ConfirmationToken;
@@ -123,6 +125,33 @@ public class UserController {
             return ResponseEntity.ok(deal);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PostMapping("/deals")
+    public ResponseEntity<?> createDeal(@RequestBody DealRequest dealRequest) {
+        try {
+            ActiveDeal deal = activeDealService.createDeal(
+                    dealRequest.getUserId(),
+                    dealRequest.getRequisitesId(),
+                    dealRequest.getAmount(),
+                    dealRequest.getCourse()
+            );
+
+            // Создайте DTO, который будет возвращен в ответе
+            DealResponseDto responseDto = new DealResponseDto(
+                    deal.getId(),
+                    deal.getMerchantId(),
+                    deal.getPartnerUserId(),
+                    deal.getAmount(),
+                    deal.getCurrency(),
+                    deal.getExchangeRate(),
+                    deal.getOrderId()
+            );
+
+            return ResponseEntity.ok(responseDto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
