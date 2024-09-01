@@ -1,6 +1,5 @@
-package com.example.payment_system;
+package com.example.paymentsystem;
 
-import com.example.paymentsystem.PaymentSystemApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 

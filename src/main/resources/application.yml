@@ -14,8 +14,23 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
+  mail:
+    host: smtp.your-email-provider.com
+    port: 587
+    username: your-email@example.com
+    password: your-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   security:
     jwt:
       secret: 2BdHJvXUQ3vJQ8ZJkMw1R1f1Ks3kJ5V8bNlM4NpQJwo=
       expiration: 86400000
+  logging:
+    level:
+      org:
+        springframework:
+          security: DEBUG

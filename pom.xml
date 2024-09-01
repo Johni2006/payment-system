@@ -80,6 +80,10 @@
 			<artifactId>hibernate-core</artifactId>
 			<version>6.1.7.Final</version> <!-- Это стабильная версия, совместимая с Jakarta -->
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

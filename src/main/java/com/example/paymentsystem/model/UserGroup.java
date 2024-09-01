@@ -1,9 +1,9 @@
 package com.example.paymentsystem.model;
 
 public enum UserGroup {
-    USER,
-    PARTNER,
-    MODERATOR,
-    SUPPORT,
-    ADMIN
+    REGULAR, // Обычные
+    PARTNER, // Партнеры
+    MODERATOR, // Модераторы
+    SUPPORT, // Поддержка
+    ADMIN // Админ
 }

@@ -4,7 +4,10 @@ import com.example.paymentsystem.model.AppUser; // Обновлено на AppUs
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Repository
-public interface UserRepository extends JpaRepository<AppUser, Long> { // Обновлено на AppUser
-    AppUser findByUsername(String username); // Обновлено на AppUser
+public interface UserRepository extends JpaRepository<AppUser, UUID> {
+    Optional<AppUser> findByUsername(String username);
 }

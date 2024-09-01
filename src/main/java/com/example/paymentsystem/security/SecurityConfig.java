@@ -22,8 +22,16 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Отключение CSRF защиты
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/users/**").permitAll() // Замена antMatchers на requestMatchers
-                        .anyRequest().authenticated()
+                        //.requestMatchers("/api/users/**").permitAll() // Разрешить доступ к /api/users/** для всех
+                        //.anyRequest().authenticated() // Все остальные запросы должны быть аутентифицированы
+                        .anyRequest().permitAll() // Разрешить доступ ко всем запросам без аутентификации
+                )
+                .formLogin(form -> form
+                        .loginPage("/login") // Указание URL страницы входа
+                        .permitAll() // Разрешить всем доступ к странице входа
+                )
+                .logout(logout -> logout
+                        .permitAll() // Разрешить всем доступ к странице выхода
                 );
 
         return http.build();
